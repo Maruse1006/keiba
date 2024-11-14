@@ -46,8 +46,15 @@ class Peds:
 
         return peds_df
 
-# 実行例
+# JSON形式で保存
 if __name__ == "__main__":
-    horse_id_list = ["2021105898"]  # 例として1つのID
+    horse_id_list = ["2017101010"]  # 例として1つのID
     peds_data = Peds.scrape(horse_id_list)
-    print(peds_data)
+    
+    # データが存在する場合のみJSONに保存
+    if not peds_data.empty:
+        peds_data.to_json("pedigree_data.json", orient="records", force_ascii=False)  # 日本語対応
+        print("JSONファイルとして保存しました: pedigree_data.json")
+    else:
+        print("データがありませんでした。")
+
