@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+import pickle
 
 class Peds:
     @staticmethod
@@ -46,15 +47,30 @@ class Peds:
 
         return peds_df
 
-# JSON形式で保存
-if __name__ == "__main__":
-    horse_id_list = ["2017101010"]  # 例として1つのID
-    peds_data = Peds.scrape(horse_id_list)
-    
-    # データが存在する場合のみJSONに保存
-    if not peds_data.empty:
-        peds_data.to_json("pedigree_data.json", orient="records", force_ascii=False)  # 日本語対応
-        print("JSONファイルとして保存しました: pedigree_data.json")
-    else:
-        print("データがありませんでした。")
+def load_horse_ids_from_pickle(pickle_file):
+    """Pickleファイルからhorse_idを取得"""
+    try:
+        with open(pickle_file, 'rb') as f:
+            race_results = pickle.load(f)
+        horse_ids = []
+        for race_id, df in race_results.items():
+            horse_ids.extend(df["horse_id"].tolist())  # DataFrameのhorse_id列をリスト化
+        return list(set(horse_ids))  # 重複を削除
+    except Exception as e:
+        print(f"Failed to load horse IDs from pickle: {e}")
+        return []
 
+if __name__ == "__main__":
+    # Pickleファイルのパス
+    pickle_filename = "race_results.pkl"
+
+    # Pickleからhorse_idをロード
+    horse_id_list = load_horse_ids_from_pickle(pickle_filename)
+    print(f"Loaded horse IDs: {horse_id_list}")
+
+    # horse_idを使って血統データをスクレイピング
+    if horse_id_list:
+        peds_data = Peds.scrape(horse_id_list)
+        print(peds_data)
+    else:
+        print("No horse IDs found in the pickle file.")
