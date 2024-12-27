@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # レースページのURL (例: Netkeibaの対象レースページ)
-url = "https://db.netkeiba.com/race/202306050811/"  # 適切なURLに置き換えてください
+url = "https://db.netkeiba.com/race/202306050811/" 
 
 # スクレイピングヘッダーの設定
 headers = {
