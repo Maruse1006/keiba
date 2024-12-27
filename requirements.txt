@@ -1,0 +1,21 @@
+django>=4.2
+mysqlclient>=2.1
+
+# データ処理
+pandas==1.5.3
+numpy==1.23.5
+
+# プログレスバー表示
+tqdm==4.64.1
+
+# 機械学習と評価指標
+scikit-learn==1.2.2
+lightgbm==3.3.5
+optuna==3.1.0
+
+# ウェブスクレイピング
+requests==2.31.0
+beautifulsoup4==4.12.2
+
+# グラフ描画
+matplotlib==3.7.1
