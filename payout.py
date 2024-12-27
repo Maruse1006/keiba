@@ -1,77 +1,91 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import requests
 from bs4 import BeautifulSoup
 
+<<<<<<< Updated upstream
 # レースページのURL (例: Netkeibaの対象レースページ)
 url = "https://db.netkeiba.com/race/202306050811/" 
+=======
+app = Flask(__name__)
+CORS(app)  # CORSを有効化
+>>>>>>> Stashed changes
 
-# スクレイピングヘッダーの設定
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36"
-}
-
-# レースデータを取得する関数
-def scrape_race_data(url):
+# 払い戻し情報をチェックするエンドポイント
+@app.route('/check_payout', methods=['POST'])
+def check_payout():
     try:
-        # レースページを取得
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # HTTPエラーがあれば例外を投げる
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # レース情報を取得
-        race_info = extract_race_info(soup)
-        print("レース情報:", race_info)
+        print("Received a POST request at /check_payout")  # デバッグ用ログ
+        data = request.json
+        print(f"Received data: {data}")  # デバッグ用ログ
 
-        # 払い戻し情報を取得
-        payouts = extract_payouts(soup)
-        print("\n払い戻し情報:")
+        day_count = data.get('dayCount')
+        place = data.get('place')
+        race = data.get('race')
+        round_number = data.get('round')
+        combinations = data.get('combinations')
+
+        # 入力データの検証
+        if not (day_count and place and race and round_number and combinations):
+            print("Invalid input data")  # デバッグ用
+            return jsonify({'success': False, 'error': 'Invalid input data'}), 400
+
+        print("Starting scraping process...")  # デバッグ用ログ
+        payouts = scrape_payouts(day_count, place, race, round_number)
+        print(f"Scraping completed. Payouts: {payouts}")  # デバッグ用ログ
+
+        # フロントエンドからの組み合わせと照合
+        payout_amount = 0
         for payout in payouts:
-            print(payout)
+            if payout['combination'] in combinations:
+                payout_amount = payout['amount']
+                break
 
-    except requests.exceptions.RequestException as e:
-        print(f"HTTPリクエストエラー: {e}")
+        print(f"Calculated payout amount: {payout_amount}")  # デバッグ用ログ
+        return jsonify({'success': True, 'payout': payout_amount})
+    except Exception as e:
+        print(f"Error: {e}")  # デバッグ用にエラーを出力
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-# レース情報を抽出する関数
-def extract_race_info(soup):
-    race_info = {}
+# 払い戻し情報をスクレイピングする関数
+def scrape_payouts(day_count, place, race, round):
+    url = f"https://db.netkeiba.com/race/2024{place}{round}{day_count}{race}/"
+    print(f"Scraping URL: {url}")  # URLをログに出力
 
-    # レース名
-    race_name_tag = soup.find("h1")
-    if race_name_tag:
-        race_info["race_name"] = race_name_tag.text.strip()
+    # ユーザーエージェントの追加
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36",
+        "Referer": "https://db.netkeiba.com/"  # 必要に応じてリファラーを設定
+    }
 
-    # レース詳細情報（日時、距離、天候など）
-    details_tag = soup.find("p", class_="smalltxt")
-    if details_tag:
-        race_info["details"] = details_tag.text.strip()
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch race data. Status code: {response.status_code}")
 
-    return race_info
+    soup = BeautifulSoup(response.content, 'html.parser')
 
-# 払い戻し情報を抽出する関数
-def extract_payouts(soup):
-    payout_data = []
-
-    # 払い戻しテーブルを取得
+    payouts = []
     payout_table = soup.find("dl", class_="pay_block")
     if not payout_table:
-        print("払い戻し情報が見つかりませんでした。")
-        return payout_data
+        print("No payout information found.")  # デバッグ用メッセージ
+        return payouts
 
+    # 払い戻し情報を取得
     tables = payout_table.find_all("table")
-
     for table in tables:
         rows = table.find_all("tr")
         for row in rows:
-            # 馬券種別、組み合わせ、金額を抽出
             cols = row.find_all("td")
-            if len(cols) >= 3:
-                payout_data.append({
-                    "type": row.find("th").text.strip(),  # 馬券種別
-                    "combination": cols[0].text.strip(),  # 組み合わせ
-                    "amount": cols[1].text.strip(),       # 払い戻し金額
+            if len(cols) >= 2:
+                payouts.append({
+                    'combination': cols[0].text.strip(),  # 払い戻しの組み合わせ
+                    'amount': int(cols[1].text.strip().replace('¥', '').replace(',', '')),  # 払い戻し金額
                 })
 
-    return payout_data
+    print(f"Payouts extracted: {payouts}")  # デバッグ用
+    return payouts
 
-# 実行
-if __name__ == "__main__":
-    scrape_race_data(url)
+# アプリを実行
+if __name__ == '__main__':
+    print("Starting Flask server...")  # デバッグ用
+    app.run(host='0.0.0.0', port=8000, debug=True)
