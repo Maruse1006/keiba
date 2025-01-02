@@ -3,15 +3,9 @@ from flask_cors import CORS
 import requests
 from bs4 import BeautifulSoup
 
-<<<<<<< Updated upstream
-# レースページのURL (例: Netkeibaの対象レースページ)
-url = "https://db.netkeiba.com/race/202306050811/" 
-=======
 app = Flask(__name__)
 CORS(app)  # CORSを有効化
->>>>>>> Stashed changes
 
-# 払い戻し情報をチェックするエンドポイント
 @app.route('/check_payout', methods=['POST'])
 def check_payout():
     try:
@@ -23,7 +17,7 @@ def check_payout():
         place = data.get('place')
         race = data.get('race')
         round_number = data.get('round')
-        combinations = data.get('combinations')
+        combinations = data.get('combinations')  # フロントエンドからの三連複の買い目
 
         # 入力データの検証
         if not (day_count and place and race and round_number and combinations):
@@ -34,11 +28,23 @@ def check_payout():
         payouts = scrape_payouts(day_count, place, race, round_number)
         print(f"Scraping completed. Payouts: {payouts}")  # デバッグ用ログ
 
-        # フロントエンドからの組み合わせと照合
+        # フロントエンドからの三連複買い目と払い戻しデータを照合
         payout_amount = 0
         for payout in payouts:
-            if payout['combination'] in combinations:
-                payout_amount = payout['amount']
+            # 払い戻しデータの組み合わせを正規化
+            try:
+                payout_combination = sorted(map(int, filter(str.isdigit, payout['combination'].replace('→', '-').replace(' ', '-').split('-'))))
+            except ValueError:
+                print(f"Skipping invalid payout combination: {payout['combination']}")
+                continue
+
+            for combination in combinations:
+                # 買い目もソートして比較
+                if sorted(combination) == payout_combination:
+                    payout_amount = payout['amount']
+                    print(f"Match found: {combination} == {payout_combination}")  # マッチした場合のログ
+                    break
+            if payout_amount > 0:
                 break
 
         print(f"Calculated payout amount: {payout_amount}")  # デバッグ用ログ
@@ -47,9 +53,12 @@ def check_payout():
         print(f"Error: {e}")  # デバッグ用にエラーを出力
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# 払い戻し情報をスクレイピングする関数
 def scrape_payouts(day_count, place, race, round):
-    url = f"https://db.netkeiba.com/race/2024{place}{round}{day_count}{race}/"
+    day_count_str = f"{int(''.join(filter(str.isdigit, day_count))):02}"  # 数字部分のみ抽出
+    place_str = f"{int(place):02}"
+    race_str = f"{int(race):02}"
+    round_str = f"{int(''.join(filter(str.isdigit, round))):02}"  # 数字部分のみ抽出
+    url = f"https://db.netkeiba.com/race/2024{place_str}{round_str}{day_count_str}{race_str}/"
     print(f"Scraping URL: {url}")  # URLをログに出力
 
     # ユーザーエージェントの追加
@@ -75,12 +84,28 @@ def scrape_payouts(day_count, place, race, round):
     for table in tables:
         rows = table.find_all("tr")
         for row in rows:
+            th = row.find("th")
+            if not th:
+                continue
+            bet_type = th.text.strip()  # 賭けの種類を取得
+
+            # 各列データを取得
             cols = row.find_all("td")
             if len(cols) >= 2:
-                payouts.append({
-                    'combination': cols[0].text.strip(),  # 払い戻しの組み合わせ
-                    'amount': int(cols[1].text.strip().replace('¥', '').replace(',', '')),  # 払い戻し金額
-                })
+                td_combination = cols[0].text.strip()
+                td_amount = cols[1].text.strip()
+                
+                # 複数行データに対応
+                combinations = td_combination.split("\n")
+                amounts = td_amount.split("\n")
+                
+                # データを整形して保存
+                for combo, amt in zip(combinations, amounts):
+                    payouts.append({
+                        'bet_type': bet_type,
+                        'combination': combo.strip(),
+                        'amount': int(amt.replace(',', '').replace('¥', '')),
+                    })
 
     print(f"Payouts extracted: {payouts}")  # デバッグ用
     return payouts
