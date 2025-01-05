@@ -5,6 +5,7 @@ from flask_cors import CORS  # CORSをインポート
 from models import db, bcrypt
 from register import register_blueprint
 from login import login_blueprint
+from get_horse import get_horses_blueprint
 
 app = Flask(__name__)
 
@@ -24,6 +25,7 @@ JWTManager(app)
 # Blueprintの登録
 app.register_blueprint(register_blueprint, url_prefix='/api')
 app.register_blueprint(login_blueprint, url_prefix='/api')
+app.register_blueprint(get_horses_blueprint, url_prefix='/api')
 
 if __name__ == '__main__':
     app.run(debug=True)
