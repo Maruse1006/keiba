@@ -1,75 +1,28 @@
-必要なライブラリー
+```
+for table in tables:
+        rows = table.find_all("tr")
+        for row in rows:
+            th = row.find("th")
+            if not th:
+                continue
+            bet_type = th.text.strip()
 
-# データ処理
-pip install pandas numpy
+            cols = row.find_all("td")
+            if len(cols) >= 2:
+                td_combination = cols[0].text.strip()
+                td_amount = cols[1].text.strip()
 
-# プログレスバー表示
-pip install tqdm
+                combinations = td_combination.split("\n")
+                amounts = td_amount.split("\n")
 
-# 機械学習と評価指標
-pip install scikit-learn lightgbm optuna
+                for combo, amt in zip(combinations, amounts):
+                    # 複勝の場合は文字列を分割
+                    if bet_type == "複勝":
+                        combo = [x.strip() for x in combo]  # 文字列を個別に分割
 
-# ウェブスクレイピング
-pip install requests beautifulsoup4
-
-# グラフ描画
-pip install matplotlib
-
-requests.get(url) の役割
-**requests.get(url)**は、指定したURL（url）にアクセスし、そのURLから情報を取得します。
-HTTP GETリクエスト：getメソッドは、ウェブページから情報を取得する際に一般的に使われるHTTPリクエストの一種で、「そのURLの内容をください」というリクエストをサーバーに送信します。
-responseオブジェクト：リクエストが成功すると、サーバーからの応答がresponseというオブジェクトに格納されます。このオブジェクトには、サーバーから返されたデータやHTTPステータスコード、エンコーディングなどの情報が含まれています。
-
-
-
-for kai in range(1, 7):
-
-kai は「開催回数」を表しています。
-range(1, 7) は、kai の値を 1 から 6 まで繰り返すことを意味します（range は終点を含まないため）。
-つまり、このループは「開催回数」が 1 から 6 の範囲で繰り返されます。
-for day in range(1, 13):
-
-day はその開催回の「日数」を表します。
-range(1, 13) は day の値を 1 から 12 まで繰り返します。
-例えば、1開催の第1日、1開催の第2日...といった日付に対応しています。
-for r in range(1, 13):
-
-r は「レース番号」を表しています。
-range(1, 13) は r の値を 1 から 12 まで繰り返します。
-例えば、1開催第1日の第1レース、1開催第1日の第2レース...というように、それぞれの日のレース番号を設定しています。
-race_id = year + str(place).zfill(2) + str(kai).zfill(2) + str(day).zfill(2) + str(r).zfill(2)
-
-race_id は「レースID」を生成するための文字列です。
-year は「開催年」を表し、文字列として先頭に追加されます。
-str(place).zfill(2) は「競馬場の場所」を表し、2桁になるようにゼロ埋めされています（例えば、京都競馬場なら 05）。
-str(kai).zfill(2) は「開催回数」を2桁にゼロ埋めしたものです。
-str(day).zfill(2) は「開催日」を2桁にゼロ埋めしたものです。
-str(r).zfill(2) は「レース番号」を2桁にゼロ埋めしたものです。
-このコードによって、race_id は 201905010101 のような形式になります。
-race_id_list.append(race_id)
-
-生成された race_id を race_id_list に追加します。
-if len(race_id_list) >= 20:
-
-race_id_list に追加されたIDの数が20件以上になったら、ループを終了し、race_id_list を返します。
-この行によって、最初の20件分だけの race_id が生成されます。
-コードの動作
-この for ループは、年、場所（競馬場）、開催回数、日数、レース番号に基づいてユニークなレースIDを生成し、race_id_list に追加します。そして、20件のレースIDが生成された時点で、リストを返して処理が終了します。
-
-「インデックスが一つずつ下がっている」というのは、ループのネスト構造によって race_id_list に追加される順序のことを指していると思われます。この構造で、外側から内側に向かって for ループが回るため、インデックスが段階的に進んでいきます。具体的に見てみましょう。
-
-例：生成される順番
-例えば、kai（開催回数）が 1、day（開催日）が 1 の場合、r（レース番号）が 1 から 12 まで順に増えていきます。その後、r のループが終了すると次に day が 2 になり、また r のループが 1 から 12 まで繰り返されます。これが、内側のループから順に進んでいくネスト構造の基本的な動作です。
-
-ループの流れ
-このコードでは、以下のように進行します：
-
-kai = 1、day = 1、r = 1 → race_id 生成。
-kai = 1、day = 1、r = 2 → race_id 生成。
-・・・
-kai = 1、day = 1、r = 12 → race_id 生成。
-kai = 1、day = 2、r = 1 → race_id 生成。
-・・・
-kai = 1、day = 2、r = 12 → race_id 生成。
-kai = 1、day = 3、r = 1 → race_id 生成。
-このように、最も内側の r のループが完了するたびに、次の day に進みます。そして、すべての day が完了すると、次の kai に進みます。
+                    payouts.append({
+                        'bet_type': bet_type,
+                        'combination': combo.strip() if bet_type != "複勝" else combo,
+                        'amount': int(amt.replace(',', '').replace('¥', '')),
+                    })
+```
