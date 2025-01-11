@@ -105,3 +105,13 @@ Error: name 'td_combination' is not defined
 
 ```
 
+```
+for table in tables:  # HTML内のすべてのテーブルを処理
+    rows = table.find_all("tr")  # テーブル内の行を取得
+    for row in rows:  # 行ごとに処理
+
+```
+・tables: BeautifulSoupで抽出したHTMLの払い戻しテーブル。
+・find_all("tr"): 各テーブル内の<tr>（行）を取得。
+・各行で必要なデータ（ベットタイプ、組み合わせ、金額）を取得して処理する。
+
