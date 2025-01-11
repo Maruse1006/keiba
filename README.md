@@ -112,6 +112,6 @@ for table in tables:  # HTML内のすべてのテーブルを処理
 
 ```
 ・tables: BeautifulSoupで抽出したHTMLの払い戻しテーブル。<br>
-・find_all("tr"): 各テーブル内の<tr>（行）を取得。
+・find_all("tr"): 各テーブル内の<tr>（行）を取得。<br>
 ・各行で必要なデータ（ベットタイプ、組み合わせ、金額）を取得して処理する。
 
