@@ -19,7 +19,7 @@ def check_payout():
         race = data.get('race')
         round_number = data.get('round')
         combinations = data.get('combinations')
-        bet_type = data.get('name')  
+        bet_type = data.get('name')
 
         if not (user_id and day_count and place and race and round_number and combinations and bet_type):
             print("Invalid input data")
@@ -96,18 +96,22 @@ def scrape_payouts(day_count, place, race, round, user_id):
                 td_combination = cols[0].text.strip()
                 td_amount = cols[1].text.strip()
 
-                combinations = td_combination.split("\n")
-                amounts = td_amount.split("\n")
-
-                for combo, amt in zip(combinations, amounts):
-                    # 複勝の場合は文字列を分割
-                    if bet_type == "複勝":
-                        combo = [x.strip() for x in combo]  # 文字列を個別に分割
-
+                # 複勝の場合の処理
+                if bet_type == "複勝":
+                    combination_list = cols[0].decode_contents().replace("<br/>", "\n").split("\n")
+                    amount_list = cols[1].decode_contents().replace("<br/>", "\n").split("\n")
+                    for combo, amt in zip(combination_list, amount_list):
+                        payouts.append({
+                            'bet_type': bet_type,
+                            'combination': combo.strip(), 
+                            'amount': int(amt.replace(',', '').replace('¥', ''))
+                        })
+                else:
+                    # 他のベットタイプ（例: 単勝, 馬連など）
                     payouts.append({
                         'bet_type': bet_type,
-                        'combination': combo.strip() if bet_type != "複勝" else combo,
-                        'amount': int(amt.replace(',', '').replace('¥', '')),
+                        'combination': td_combination.strip(),
+                        'amount': int(td_amount.replace(',', '').replace('¥', ''))
                     })
 
     print(f"Payouts extracted: {payouts}")
@@ -123,15 +127,13 @@ def calculate_payout(payouts, combinations, bet_type):
                 if any(comb == payout['combination'] for comb in combinations):
                     print(f"Match found: name={bet_type}, combination={payout['combination']}")
                     return payout['amount']
+
+            # "複勝"の特別な処理
             if bet_type == "複勝":
-                    combination_list = td_combination.split("\n")
-                    amount_list = td_amount.split("\n")
-                    for combo, amt in zip(combination_list, amount_list):
-                        payouts.append({
-                            'bet_type': bet_type,
-                            'combination': combo.strip(),
-                            'amount': int(amt.replace(',', '').replace('¥', ''))
-                        })
+                for combination in combinations:
+                    if combination in payout['combination']:  # 部分一致を確認
+                        print(f"Match found: name={bet_type}, combination={payout['combination']}")
+                        return payout['amount']
 
             # 他のベットタイプの処理
             payout_combination = sorted(
@@ -142,9 +144,7 @@ def calculate_payout(payouts, combinations, bet_type):
                     print(f"Match found: name={bet_type}, combination={payout['combination']}")
                     return payout['amount']
         except ValueError:
-            # 整形時にエラーが発生した場合はスキップ
             print(f"Skipping invalid payout combination: {payout['combination']}")
             continue
 
-    # 該当なしの場合は0を返す
     return 0
