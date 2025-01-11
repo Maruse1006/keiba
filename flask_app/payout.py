@@ -19,7 +19,7 @@ def check_payout():
         race = data.get('race')
         round_number = data.get('round')
         combinations = data.get('combinations')
-        bet_type = data.get('name')  # フロントエンドから賭けの種類
+        bet_type = data.get('name')  
 
         if not (user_id and day_count and place and race and round_number and combinations and bet_type):
             print("Invalid input data")
@@ -100,9 +100,13 @@ def scrape_payouts(day_count, place, race, round, user_id):
                 amounts = td_amount.split("\n")
 
                 for combo, amt in zip(combinations, amounts):
+                    # 複勝の場合は文字列を分割
+                    if bet_type == "複勝":
+                        combo = [x.strip() for x in combo]  # 文字列を個別に分割
+
                     payouts.append({
                         'bet_type': bet_type,
-                        'combination': combo.strip(),
+                        'combination': combo.strip() if bet_type != "複勝" else combo,
                         'amount': int(amt.replace(',', '').replace('¥', '')),
                     })
 
@@ -114,6 +118,22 @@ def calculate_payout(payouts, combinations, bet_type):
     """払い戻し金額を計算"""
     for payout in payouts:
         try:
+            # "単勝"の特別な処理
+            if bet_type == "単勝":
+                if any(comb == payout['combination'] for comb in combinations):
+                    print(f"Match found: name={bet_type}, combination={payout['combination']}")
+                    return payout['amount']
+            if bet_type == "複勝":
+                    combination_list = td_combination.split("\n")
+                    amount_list = td_amount.split("\n")
+                    for combo, amt in zip(combination_list, amount_list):
+                        payouts.append({
+                            'bet_type': bet_type,
+                            'combination': combo.strip(),
+                            'amount': int(amt.replace(',', '').replace('¥', ''))
+                        })
+
+            # 他のベットタイプの処理
             payout_combination = sorted(
                 map(str.strip, payout['combination'].replace('→', '-').replace(' ', '').split('-'))
             )
@@ -122,7 +142,9 @@ def calculate_payout(payouts, combinations, bet_type):
                     print(f"Match found: name={bet_type}, combination={payout['combination']}")
                     return payout['amount']
         except ValueError:
+            # 整形時にエラーが発生した場合はスキップ
             print(f"Skipping invalid payout combination: {payout['combination']}")
             continue
 
+    # 該当なしの場合は0を返す
     return 0

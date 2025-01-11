@@ -24,6 +24,6 @@ def calculate_payout(payouts, combinations, bet_type):
             continue
 
     # 該当なしの場合は0を返す
-    return 0
+    return 0g
 ```
 
