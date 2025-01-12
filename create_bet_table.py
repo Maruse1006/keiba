@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS bets (
     race_number INT NOT NULL,             -- レース番号
     round VARCHAR(20) NOT NULL,           -- 開催回
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
 );
 """
 

@@ -1,5 +1,10 @@
+flask
+flask-cors
+
 django>=4.2
 mysqlclient>=2.1
+django-cors-headers==3.14.0
+
 
 # データ処理
 pandas==1.5.3
