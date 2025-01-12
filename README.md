@@ -60,3 +60,58 @@ Error: name 'td_combination' is not defined
                             'amount': int(amt.replace(',', '').replace('¥', ''))
                         })
 ```
+実際のデータ
+```
+<table cellpadding="0" cellspacing="1" class="pay_table_01" summary="払い戻し">
+  <tbody>
+    <tr>
+      <th class="tan">単勝</th>
+      <td>3</td>
+      <td class="txt_r">340</td>
+      <td class="txt_r">1</td>
+    </tr>
+    <tr>
+      <th class="fuku" align="center">複勝</th>
+      <td>
+        3<br>
+        16<br>
+        2
+      </td>
+      <td class="txt_r">
+        160<br>
+        530<br>
+        320
+      </td>
+      <td class="txt_r">
+        1<br>
+        9<br>
+        7
+      </td>
+    </tr>
+    <tr>
+      <th class="waku" align="center">枠連</th>
+      <td>2 - 8</td>
+      <td class="txt_r">3,640</td>
+      <td class="txt_r">18</td>
+    </tr>
+    <tr>
+      <th class="uren" align="center">馬連</th>
+      <td>3 - 16</td>
+      <td class="txt_r">5,420</td>
+      <td class="txt_r">23</td>
+    </tr>
+  </tbody>
+</table>
+
+```
+
+```
+for table in tables:  # HTML内のすべてのテーブルを処理
+    rows = table.find_all("tr")  # テーブル内の行を取得
+    for row in rows:  # 行ごとに処理
+
+```
+・tables: BeautifulSoupで抽出したHTMLの払い戻しテーブル。<br>
+・find_all("tr"): 各テーブル内の<tr>（行）を取得。<br>
+・各行で必要なデータ（ベットタイプ、組み合わせ、金額）を取得して処理する。
+
