@@ -96,60 +96,15 @@ def scrape_payouts(day_count, place, race, round, user_id):
                 td_combination = cols[0].text.strip()
                 td_amount = cols[1].text.strip()
 
-                if bet_type == "複勝":
-                    combination_list = cols[0].decode_contents().replace("<br/>", "\n").split("\n")
-                    amount_list = cols[1].decode_contents().replace("<br/>", "\n").split("\n")
-                    for combo, amt in zip(combination_list, amount_list):
-                        payouts.append({
-                            'bet_type': bet_type,
-                            'combination': combo.strip(), 
-                            'amount': int(amt.replace(',', '').replace('¥', ''))
-                        })
-                elif bet_type == "馬単":
-                    combinations = td_combination.split("\n")
-                    amounts = td_amount.split("\n")
-                    for combo, amt in zip(combinations, amounts):
-                        formatted_combo = combo.strip().replace(' ', '').replace('-', '→')
-                        debug_combo = formatted_combo  # 矢印付きで保存
-                        debug_amount = int(amt.replace(',', '').replace('¥', ''))
-                        print(f"[DEBUG] 馬単の組み合わせ: {debug_combo}, 金額: {debug_amount}")
-                        payouts.append({
-                            'bet_type': bet_type,
-                            'combination': debug_combo,
-                            'amount': debug_amount
-                        })
                 if bet_type == "ワイド":
-                    # combination = td_combination.split("\n")
                     combination_list = cols[0].decode_contents().replace("<br/>", "\n").split("\n")
                     amount_list = cols[1].decode_contents().replace("<br/>", "\n").split("\n")
                     for combo, amt in zip(combination_list, amount_list):
                         payouts.append({
                             'bet_type': bet_type,
-                            'combination': combo.strip(), 
+                            'combination': combo.strip(),
                             'amount': int(amt.replace(',', '').replace('¥', ''))
                         })
-                     
-                    print(f"ワイドログ:{amount_list}")
-
-                elif bet_type == "三連単":
-                    combinations = td_combination.split("\n")
-                    amounts = td_amount.split("\n")
-                    for combo, amt in zip(combinations, amounts):
-                        formatted_combo = combo.strip().replace(' ', '').replace('-', '→')
-                        debug_combo = formatted_combo  # 矢印付きで保存
-                        debug_amount = int(amt.replace(',', '').replace('¥', ''))
-                        print(f"[DEBUG] 馬単の組み合わせ: {debug_combo}, 金額: {debug_amount}")
-                        payouts.append({
-                            'bet_type': bet_type,
-                            'combination': debug_combo,
-                            'amount': debug_amount
-                        })
-                else:
-                    payouts.append({
-                        'bet_type': bet_type,
-                        'combination': td_combination.strip(),
-                        'amount': int(td_amount.replace(',', '').replace('¥', ''))
-                    })
 
     print(f"Payouts extracted: {payouts}")
     return payouts
@@ -160,30 +115,21 @@ def calculate_payout(payouts, combinations, bet_type):
     filtered_payouts = [payout for payout in payouts if payout.get('bet_type') == bet_type]
     print(f"[DEBUG] {bet_type} に関連するデータのみを処理: {filtered_payouts}")
 
-    for payout in filtered_payouts:
-        try:
-            if bet_type == "馬単":
-                for combination in combinations:
-                    expected_combination = "→".join(map(str, combination))  # '3→16' 形式に整形
-                    print(f"[DEBUG] Expected combination for {bet_type}: {expected_combination}")
-                    print(f"[DEBUG] Payout combination for {bet_type}: {payout['combination']}")
+    total_payout = 0
 
-                    if payout['combination'] == expected_combination:
-                        print(f"Match found: name={bet_type}, combination={payout['combination']}")
-                        return payout['amount']
-            if bet_type == "ワイド":
-                for combination in combinations:
-                    expected_combination = " - ".join(map(str, combination))  # '3 - 16' 形式に整形
-                    print(f"[DEBUG] Expected combination for {bet_type}: {expected_combination}")
-                    print(f"[DEBUG] Payout combination for {bet_type}: {payout['combination']}")
+    for idx, combination in enumerate(combinations, start=1):  # 外側ループの回数を記録
+        # 組み合わせをソートして整形
+        sorted_combination = sorted(map(str, combination))  # ソートされた組み合わせ
+        expected_combination = " - ".join(sorted_combination)  # '3 - 16' 形式に整形
+        print(f"[DEBUG] Loop {idx}: Expected combination for {bet_type}: {expected_combination}")
+        
+        for payout_idx, payout in enumerate(filtered_payouts, start=1):  # 内側ループの回数を記録
+            # 払い戻しデータもソートして比較
+            payout_sorted_combination = " - ".join(sorted(payout['combination'].split(" - ")))
+            print(f"[DEBUG] Loop {idx}-{payout_idx}: Payout combination for {bet_type}: {payout_sorted_combination}")
 
-                    if payout['combination'] == expected_combination:
-                        print(f"Match found: name={bet_type}, combination={payout['combination']}")
-                        return payout['amount']
-       
-                    
-        except ValueError:
-            print(f"Skipping invalid payout combination: {payout['combination']}")
-            continue
+            if payout_sorted_combination == expected_combination:
+                print(f"[DEBUG] Match found in Loop {idx}-{payout_idx}: name={bet_type}, combination={payout['combination']}, amount={payout['amount']}")
+                total_payout += payout['amount']  # 合計に加算
 
-    return 0
+    return total_payout
