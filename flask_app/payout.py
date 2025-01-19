@@ -29,27 +29,34 @@ def check_payout():
         payouts = scrape_payouts(day_count, place, race, round_number, user_id)
         print(f"Scraping completed. Payouts: {payouts}")
 
-        # 払い戻し金額の計算
-        payout_amount = calculate_payout(payouts, combinations, bet_type)
+        # 払い戻し金額と収支の計算
+        bet_amount_per_combination = 100  # 1組み合わせあたりの掛け金
+        payout_amount, total_bet_amount, profit_or_loss = calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per_combination)
         print(f"Calculated payout amount: {payout_amount}")
+        print(f"Total bet amount: {total_bet_amount}")
+        print(f"Profit or loss: {profit_or_loss}")
 
-        # DBに払戻金を登録
-        if payout_amount > 0:
-            bet_entry = Bets(
-                user_id=user_id,
-                name=bet_type,
-                amount=payout_amount,
-                comment="払い戻し金の記録",
-                date_info=day_count,
-                location=place,
-                race_number=race,
-                round=round_number,
-            )
-            db.session.add(bet_entry)
-            db.session.commit()
-            print(f"Bet successfully recorded for user_id={user_id}")
+        # DBに払戻金と収支を登録（収支がマイナスでも登録する）
+        bet_entry = Bets(
+            user_id=user_id,
+            name=bet_type,
+            amount=payout_amount,
+            comment=f"収支計算: {profit_or_loss}円",
+            date_info=day_count,
+            location=place,
+            race_number=race,
+            round=round_number,
+        )
+        db.session.add(bet_entry)
+        db.session.commit()
+        print(f"Bet successfully recorded for user_id={user_id}, profit_or_loss={profit_or_loss}")
 
-        return jsonify({'success': True, 'payout': payout_amount})
+        return jsonify({
+            'success': True,
+            'payout': payout_amount,
+            'total_bet_amount': total_bet_amount,
+            'profit_or_loss': profit_or_loss
+        })
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -110,12 +117,13 @@ def scrape_payouts(day_count, place, race, round, user_id):
     return payouts
 
 
-def calculate_payout(payouts, combinations, bet_type):
-    """払い戻し金額を計算"""
+def calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per_combination):
+    """払い戻し金額と収支を計算"""
     filtered_payouts = [payout for payout in payouts if payout.get('bet_type') == bet_type]
     print(f"[DEBUG] {bet_type} に関連するデータのみを処理: {filtered_payouts}")
 
     total_payout = 0
+    total_bet_amount = len(combinations) * bet_amount_per_combination  # 総掛け金
 
     for idx, combination in enumerate(combinations, start=1):  # 外側ループの回数を記録
         # 組み合わせをソートして整形
@@ -132,4 +140,7 @@ def calculate_payout(payouts, combinations, bet_type):
                 print(f"[DEBUG] Match found in Loop {idx}-{payout_idx}: name={bet_type}, combination={payout['combination']}, amount={payout['amount']}")
                 total_payout += payout['amount']  # 合計に加算
 
-    return total_payout
+    # 収支計算：払い戻し金額 - 総掛け金
+    profit_or_loss = total_payout - total_bet_amount
+
+    return total_payout, total_bet_amount, profit_or_loss

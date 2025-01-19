@@ -7,6 +7,8 @@ from register import register_blueprint
 from login import login_blueprint
 from get_horse import get_horses_blueprint
 from payout import check_payout_blueprint
+from get_daily_profit import get_daily_profit_blueprint
+
 
 app = Flask(__name__)
 
@@ -28,6 +30,8 @@ app.register_blueprint(register_blueprint, url_prefix='/api')
 app.register_blueprint(login_blueprint, url_prefix='/api')
 app.register_blueprint(get_horses_blueprint, url_prefix='/api')
 app.register_blueprint(check_payout_blueprint, url_prefix='/api')
+app.register_blueprint(get_daily_profit_blueprint, url_prefix='/api')
+
 
 if __name__ == '__main__':
     with app.app_context():
