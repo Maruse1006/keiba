@@ -29,27 +29,34 @@ def check_payout():
         payouts = scrape_payouts(day_count, place, race, round_number, user_id)
         print(f"Scraping completed. Payouts: {payouts}")
 
-        # 払い戻し金額の計算
-        payout_amount = calculate_payout(payouts, combinations, bet_type)
+        # 払い戻し金額と収支の計算
+        bet_amount_per_combination = 100  # 1組み合わせあたりの掛け金
+        payout_amount, total_bet_amount, profit_or_loss = calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per_combination)
         print(f"Calculated payout amount: {payout_amount}")
+        print(f"Total bet amount: {total_bet_amount}")
+        print(f"Profit or loss: {profit_or_loss}")
 
-        # DBに払戻金を登録
-        if payout_amount > 0:
-            bet_entry = Bets(
-                user_id=user_id,
-                name=bet_type,
-                amount=payout_amount,
-                comment="払い戻し金の記録",
-                date_info=day_count,
-                location=place,
-                race_number=race,
-                round=round_number,
-            )
-            db.session.add(bet_entry)
-            db.session.commit()
-            print(f"Bet successfully recorded for user_id={user_id}")
+        # DBに払戻金と収支を登録（収支がマイナスでも登録する）
+        bet_entry = Bets(
+            user_id=user_id,
+            name=bet_type,
+            amount=payout_amount,
+            comment=f"収支計算: {profit_or_loss}円",
+            date_info=day_count,
+            location=place,
+            race_number=race,
+            round=round_number,
+        )
+        db.session.add(bet_entry)
+        db.session.commit()
+        print(f"Bet successfully recorded for user_id={user_id}, profit_or_loss={profit_or_loss}")
 
-        return jsonify({'success': True, 'payout': payout_amount})
+        return jsonify({
+            'success': True,
+            'payout': payout_amount,
+            'total_bet_amount': total_bet_amount,
+            'profit_or_loss': profit_or_loss
+        })
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -96,15 +103,16 @@ def scrape_payouts(day_count, place, race, round, user_id):
                 td_combination = cols[0].text.strip()
                 td_amount = cols[1].text.strip()
 
-                if bet_type == "複勝":
+                if bet_type == "ワイド":
                     combination_list = cols[0].decode_contents().replace("<br/>", "\n").split("\n")
                     amount_list = cols[1].decode_contents().replace("<br/>", "\n").split("\n")
                     for combo, amt in zip(combination_list, amount_list):
                         payouts.append({
                             'bet_type': bet_type,
-                            'combination': combo.strip(), 
+                            'combination': combo.strip(),
                             'amount': int(amt.replace(',', '').replace('¥', ''))
                         })
+<<<<<<< HEAD
                 elif bet_type == "馬単":
                     combinations = td_combination.split("\n")
                     amounts = td_amount.split("\n")
@@ -150,24 +158,22 @@ def scrape_payouts(day_count, place, race, round, user_id):
                         'combination': td_combination.strip(),
                         'amount': int(td_amount.replace(',', '').replace('¥', ''))
                     })
+=======
+>>>>>>> payout
 
     print(f"Payouts extracted: {payouts}")
     return payouts
 
 
-def calculate_payout(payouts, combinations, bet_type):
-    """払い戻し金額を計算"""
+def calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per_combination):
+    """払い戻し金額と収支を計算"""
     filtered_payouts = [payout for payout in payouts if payout.get('bet_type') == bet_type]
     print(f"[DEBUG] {bet_type} に関連するデータのみを処理: {filtered_payouts}")
 
-    for payout in filtered_payouts:
-        try:
-            if bet_type == "馬単":
-                for combination in combinations:
-                    expected_combination = "→".join(map(str, combination))  # '3→16' 形式に整形
-                    print(f"[DEBUG] Expected combination for {bet_type}: {expected_combination}")
-                    print(f"[DEBUG] Payout combination for {bet_type}: {payout['combination']}")
+    total_payout = 0
+    total_bet_amount = 0  # 賭け額の合計
 
+<<<<<<< HEAD
                     if payout['combination'] == expected_combination:
                         print(f"Match found: name={bet_type}, combination={payout['combination']}")
                         return payout['amount']
@@ -185,5 +191,29 @@ def calculate_payout(payouts, combinations, bet_type):
         except ValueError:
             print(f"Skipping invalid payout combination: {payout['combination']}")
             continue
+=======
+    for idx, combination_data in enumerate(combinations, start=1):
+        # フロントエンドから受け取った組み合わせと賭け額
+        combination = combination_data['combination']
+        bet_amount = int(combination_data['betAmount'])  # 賭け額を整数に変換
+        total_bet_amount += bet_amount  # 賭け額の総計を加算
+        sorted_combination = " - ".join(sorted(map(str, combination)))  # 組み合わせをソートして比較用フォーマットに変換
+        print(f"[DEBUG] Loop {idx}: Expected combination for {bet_type}: {sorted_combination}, Bet amount: {bet_amount}")
+>>>>>>> payout
 
-    return 0
+        for payout_idx, payout in enumerate(filtered_payouts, start=1):
+            # 払い戻しデータの組み合わせをソートしてフォーマットを統一
+            payout_sorted_combination = " - ".join(sorted(payout['combination'].split(" - ")))
+            print(f"[DEBUG] Loop {idx}-{payout_idx}: Payout combination for {bet_type}: {payout_sorted_combination}, Payout amount: {payout['amount']}")
+
+            # 比較して一致する組み合わせが見つかった場合、払い戻しを計算
+            if payout_sorted_combination == sorted_combination:
+                payout_contribution = payout['amount'] * (bet_amount / 100)  # 賭け額に応じた払い戻し額
+                print(f"[DEBUG] Match found: Adding payout {payout_contribution} for combination {sorted_combination}")
+                total_payout += payout_contribution  # 合計払い戻しに加算
+
+    # 総収支を計算
+    profit_or_loss = total_payout - total_bet_amount
+    print(f"[DEBUG] Total payout: {total_payout}, Total bet amount: {total_bet_amount}, Profit or loss: {profit_or_loss}")
+
+    return total_payout, total_bet_amount, profit_or_loss
