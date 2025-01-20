@@ -123,24 +123,29 @@ def calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per
     print(f"[DEBUG] {bet_type} に関連するデータのみを処理: {filtered_payouts}")
 
     total_payout = 0
-    total_bet_amount = len(combinations) * bet_amount_per_combination  # 総掛け金
+    total_bet_amount = 0  # 賭け額の合計
 
-    for idx, combination in enumerate(combinations, start=1):  # 外側ループの回数を記録
-        # 組み合わせをソートして整形
-        sorted_combination = sorted(map(str, combination))  # ソートされた組み合わせ
-        expected_combination = " - ".join(sorted_combination)  # '3 - 16' 形式に整形
-        print(f"[DEBUG] Loop {idx}: Expected combination for {bet_type}: {expected_combination}")
-        
-        for payout_idx, payout in enumerate(filtered_payouts, start=1):  # 内側ループの回数を記録
-            # 払い戻しデータもソートして比較
+    for idx, combination_data in enumerate(combinations, start=1):
+        # フロントエンドから受け取った組み合わせと賭け額
+        combination = combination_data['combination']
+        bet_amount = int(combination_data['betAmount'])  # 賭け額を整数に変換
+        total_bet_amount += bet_amount  # 賭け額の総計を加算
+        sorted_combination = " - ".join(sorted(map(str, combination)))  # 組み合わせをソートして比較用フォーマットに変換
+        print(f"[DEBUG] Loop {idx}: Expected combination for {bet_type}: {sorted_combination}, Bet amount: {bet_amount}")
+
+        for payout_idx, payout in enumerate(filtered_payouts, start=1):
+            # 払い戻しデータの組み合わせをソートしてフォーマットを統一
             payout_sorted_combination = " - ".join(sorted(payout['combination'].split(" - ")))
-            print(f"[DEBUG] Loop {idx}-{payout_idx}: Payout combination for {bet_type}: {payout_sorted_combination}")
+            print(f"[DEBUG] Loop {idx}-{payout_idx}: Payout combination for {bet_type}: {payout_sorted_combination}, Payout amount: {payout['amount']}")
 
-            if payout_sorted_combination == expected_combination:
-                print(f"[DEBUG] Match found in Loop {idx}-{payout_idx}: name={bet_type}, combination={payout['combination']}, amount={payout['amount']}")
-                total_payout += payout['amount']  # 合計に加算
+            # 比較して一致する組み合わせが見つかった場合、払い戻しを計算
+            if payout_sorted_combination == sorted_combination:
+                payout_contribution = payout['amount'] * (bet_amount / 100)  # 賭け額に応じた払い戻し額
+                print(f"[DEBUG] Match found: Adding payout {payout_contribution} for combination {sorted_combination}")
+                total_payout += payout_contribution  # 合計払い戻しに加算
 
-    # 収支計算：払い戻し金額 - 総掛け金
+    # 総収支を計算
     profit_or_loss = total_payout - total_bet_amount
+    print(f"[DEBUG] Total payout: {total_payout}, Total bet amount: {total_bet_amount}, Profit or loss: {profit_or_loss}")
 
     return total_payout, total_bet_amount, profit_or_loss
