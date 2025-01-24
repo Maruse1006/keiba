@@ -130,13 +130,14 @@ def calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per
         combination = combination_data['combination']
         bet_amount = int(combination_data['betAmount'])  # 賭け額を整数に変換
         total_bet_amount += bet_amount  # 賭け額の総計を加算
-        sorted_combination = " - ".join(sorted(map(str, combination)))  # 組み合わせをソートして比較用フォーマットに変換
+        sorted_combination = " - ".join(map(str, sorted(map(int, combination))))
+
         print(f"[DEBUG] Loop {idx}: Expected combination for {bet_type}: {sorted_combination}, Bet amount: {bet_amount}")
 
         for payout_idx, payout in enumerate(filtered_payouts, start=1):
             # 払い戻しデータの組み合わせをソートしてフォーマットを統一
             payout_sorted_combination = " - ".join(sorted(payout['combination'].split(" - ")))
-            print(f"[DEBUG] Loop {idx}-{payout_idx}: Payout combination for {bet_type}: {payout_sorted_combination}, Payout amount: {payout['amount']}")
+            print(f"[DEBUG] Loop {idx}-{payout_idx}: sssssssssssssssPayout combination for {bet_type}: {payout_sorted_combination}, Payout amount: {payout['amount']}")
 
             # 比較して一致する組み合わせが見つかった場合、払い戻しを計算
             if payout_sorted_combination == sorted_combination:
@@ -146,6 +147,6 @@ def calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per
 
     # 総収支を計算
     profit_or_loss = total_payout - total_bet_amount
-    print(f"[DEBUG] Total payout: {total_payout}, Total bet amount: {total_bet_amount}, Profit or loss: {profit_or_loss}")
+    print(f"[DEBUG] Total payoutssssssss: {total_payout}, Total bet amount: {total_bet_amount}, Profit or loss: {profit_or_loss}")
 
     return total_payout, total_bet_amount, profit_or_loss
