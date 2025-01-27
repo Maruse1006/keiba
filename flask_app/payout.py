@@ -116,10 +116,14 @@ def scrape_payouts(day_count, place, race, round, user_id):
                     combinations = td_combination.split("\n")
                     amounts = td_amount.split("\n")
                     for combo, amt in zip(combinations, amounts):
-                        formatted_combo = combo.strip().replace(' ', '').replace('-', '→')
-                        debug_combo = formatted_combo  # 矢印付きで保存
-                        debug_amount = int(amt.replace(',', '').replace('¥', ''))
-                        print(f"[DEBUG] 馬単の組み合わせ: {debug_combo}, 金額: {debug_amount}")
+                        original_combo = combo.strip()  # 元の組み合わせ
+                        formatted_combo = original_combo.replace(' ', '').replace('-', ' → ')
+                        debug_amount = int(amt.replace(',', '').replace('¥', '').strip())
+                        # デバッグログを詳細化
+                        print(f"[DEBUG] 馬単 - 元の組み合わせ: {original_combo}")
+                        print(f"[DEBUG] 馬単 - 整形後の組み合わせ: {formatted_combo}")
+                        print(f"[DEBUG] 馬単 - 元の金額: {amt.strip()}, パース後の金額: {debug_amount}")
+                        print(f"[DEBUG] 馬単 - payouts に追加予定: bet_type={bet_type}, combination={formatted_combo}, amount={debug_amount}")
                         payouts.append({
                             'bet_type': bet_type,
                             'combination': debug_combo,
@@ -144,7 +148,7 @@ def scrape_payouts(day_count, place, race, round, user_id):
                         formatted_combo = combo.strip().replace(' ', '').replace('-', '→')
                         debug_combo = formatted_combo  # 矢印付きで保存
                         debug_amount = int(amt.replace(',', '').replace('¥', ''))
-                        print(f"[DEBUG] 馬単の組み合わせ: {debug_combo}, 金額: {debug_amount}")
+                        print(f"[DEBUG] 三連単の組み合わせ: {debug_combo}, 金額: {debug_amount}")
                         payouts.append({
                             'bet_type': bet_type,
                             'combination': debug_combo,
@@ -177,30 +181,30 @@ def scrape_payouts(day_count, place, race, round, user_id):
 
 def calculate_payout_with_profit(payouts, combinations, bet_type, bet_amount_per_combination):
     """払い戻し金額と収支を計算"""
-    filtered_payouts = [payout for payout in payouts if payout.get('bet_type') == bet_type]
-    print(f"[DEBUG] {bet_type} に関連するデータのみを処理: {filtered_payouts}")
+    filtered_payouts = {
+        f"{payout['bet_type']}-{payout['combination'].replace('→', '-').replace(' ', '')}": payout
+        for payout in payouts if payout.get('bet_type') == bet_type
+    }.values()
 
-    total_payout = 0
-    total_bet_amount = 0  # 賭け額の合計
+    total_payout = 0  # インデント修正
+    total_bet_amount = 0  # インデント修正
 
     for idx, combination_data in enumerate(combinations, start=1):
-        # フロントエンドから受け取った組み合わせと賭け額
         combination = combination_data['combination']
-        bet_amount = int(combination_data['betAmount'])  # 賭け額を整数に変換
-        total_bet_amount += bet_amount  # 賭け額の総計を加算
-        sorted_combination = " - ".join(sorted(map(str, combination)))  # 組み合わせをソートして比較用フォーマットに変換
+        bet_amount = int(combination_data['betAmount'])
+        total_bet_amount += bet_amount
+        sorted_combination = " - ".join(sorted(map(str, combination)))
+
         print(f"[DEBUG] Loop {idx}: Expected combination for {bet_type}: {sorted_combination}, Bet amount: {bet_amount}")
 
-        for payout_idx, payout in enumerate(filtered_payouts, start=1):
-            # 払い戻しデータの組み合わせをソートしてフォーマットを統一
-            payout_sorted_combination = " - ".join(sorted(payout['combination'].split(" - ")))
-            print(f"[DEBUG] Loop {idx}-{payout_idx}: Payout combination for {bet_type}: {payout_sorted_combination}, Payout amount: {payout['amount']}")
-
-            # 比較して一致する組み合わせが見つかった場合、払い戻しを計算
+        for payout in filtered_payouts:
+            payout_sorted_combination = " - ".join(
+                sorted(payout['combination'].replace('→', '-').replace(' ', '').split('-'))
+            )
             if payout_sorted_combination == sorted_combination:
-                payout_contribution = payout['amount'] * (bet_amount / 100)  # 賭け額に応じた払い戻し額
+                payout_contribution = payout['amount'] * (bet_amount / 100)
                 print(f"[DEBUG] Match found: Adding payout {payout_contribution} for combination {sorted_combination}")
-                total_payout += payout_contribution  # 合計払い戻しに加算
+                total_payout += payout_contribution
 
     # 総収支を計算
     profit_or_loss = total_payout - total_bet_amount
