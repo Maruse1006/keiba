@@ -1,16 +1,22 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
-from models import db, User, bcrypt
+from sqlalchemy import func
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, jsonify
+from models import db, Bets
 
+bet_api_blueprint = Blueprint('bet_api', __name__)
 
-@app.route("/api/user/bet-summary", methods=["GET"])
+@bet_api_blueprint.route("/bet-summary", methods=["GET"])
 @jwt_required()
 def get_bet_summary():
-    user_id = get_jwt_identity().get("id")
+    user_id = int(get_jwt_identity())
+    print(f"✅ get_bet_summary: user_id = {user_id}")
+    
     results = db.session.query(
-        Bet.date_info,
-        func.sum(Bet.amount).label('total_amount')
-    ).filter(Bet.user_id == user_id).group_by(Bet.date_info).all()
+        Bets.date_info,
+        func.sum(Bets.amount).label('total_amount')
+    ).filter(Bets.user_id == user_id).group_by(Bets.date_info).all()
 
+    print(f"✅ get_bet_summary: results = {results}")
+    
     data = [{"date_info": r[0], "total_amount": float(r[1])} for r in results]
     return jsonify(data)

@@ -7,7 +7,7 @@ login_blueprint = Blueprint('login', __name__)
 @login_blueprint.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    print(f"User ID: {data}, Email: {user.email}")
+    print(f"Login request data: {data}")
 
     # 必要なフィールドがあるか確認
     if not data or 'email' not in data or 'password' not in data:
@@ -19,7 +19,8 @@ def login():
         return jsonify({'message': 'Invalid email or password.'}), 401
     print(f"User ID: {user.id}, Email: {user.email}")
 
-    # ユーザーIDとメールをトークンに含める
-    token = create_access_token(identity={'id': user.id, 'email': user.email})
+    token = create_access_token(identity=str(user.id))  # str型に変換
+
+    print(f"🔐 発行トークン: {token}")  # 
 
     return jsonify({'message': 'Login successful!', 'token': token}), 200
