@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify,Blueprint
 import pickle
 from peds_scraper import Peds  # Pedsクラスを利用
 
@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["http://localhost:8081", "http://127.0.0.1:8081", "http://172.19.0.3:8001"]}})
 
 
-
+horse_pedigree_api_blueprint = Blueprint('horse_pedigree_api', __name__)
 
 # 馬名とhorse_idをロード
 def load_horse_data(pickle_file):
@@ -19,7 +19,7 @@ def load_horse_data(pickle_file):
 horse_data_file = "horse_names_and_ids.pkl"
 horse_data = load_horse_data(horse_data_file)
 
-@app.route('/get_pedigree', methods=['POST'])
+@horse_pedigree_api_blueprint.route('/get_pedigree', methods=['POST'])
 def get_pedigree():
     try:
         data = request.json

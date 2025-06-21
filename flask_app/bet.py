@@ -11,13 +11,24 @@ def get_bet_summary():
     user_id = int(get_jwt_identity())
     print(f"✅ get_bet_summary: user_id = {user_id}")
 
-    # 日別の賭け金合計
     results = db.session.query(
         Bets.date_info,
+        Bets.location,
+        Bets.round,
         func.sum(Bets.amount).label('total_amount')
-    ).filter(Bets.user_id == user_id).group_by(Bets.date_info).all()
+    ).filter(Bets.user_id == user_id
+    ).group_by(
+        Bets.date_info,
+        Bets.location,
+        Bets.round
+    ).all()
 
-    daily = [{"date_info": r[0], "total_amount": float(r[1])} for r in results]
+    daily = [{
+        "date_info": r[0],
+        "location": r[1],
+        "round": r[2],
+        "total_amount": float(r[3])
+    } for r in results]
 
     total = db.session.query(func.sum(Bets.amount)).filter(Bets.user_id == user_id).scalar()
     total = float(total) if total else 0.0

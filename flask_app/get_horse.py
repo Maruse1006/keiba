@@ -10,6 +10,7 @@ def get_horses():
     try:
         # POSTリクエストからパラメータを取得
         data = request.json
+        year = data.get('year')
         day_count = data.get('dayCount')
         place = data.get('place')
         race = data.get('race')
@@ -20,7 +21,7 @@ def get_horses():
         place_str = f"{int(place):02}"
         race_str = f"{int(race):02}"
         round_str = f"{int(''.join(filter(str.isdigit, round_number))):02}"
-        url = f"https://db.netkeiba.com/race/2024{place_str}{round_str}{day_count_str}{race_str}/"
+        url = f"https://db.netkeiba.com/race/{year}{place_str}{round_str}{day_count_str}{race_str}/"
         print(f"Scraping URL: {url}")  # デバッグ用
 
         # HTTPリクエスト
